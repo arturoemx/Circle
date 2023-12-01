@@ -4,18 +4,15 @@
 #include "opencv2/opencv.hpp"
 #include <vector>
 
-using namespace cv;
+namespace CircFit
+{
+
 /*!
     \file 
     \brief The circle class header file.
 
     This header file contains the declaration of the struct Circle. The struct Circle allows us yo instantiate object capable of representing a 2D circle, whit methods to define the circle from a set of points lying on the circle locus.
 */
-
-/*!
-    A shorthand for a coordinate with three elements. In this program the two first elements store the coordinates of a point in a 2D space, and the third element keeps the coordinate class (0==outlier, 1==inlier).
-*/
-typedef Point3_<short> Point3s;
 
 /*! 
     \struct Circle
@@ -52,22 +49,23 @@ struct Circle
     Circle(float x, float y, float radius);
     
     /*!
-        \func Circle(vector <Point3s> &p)
+        \func Circle(vector <cv::Point> &p, std::vector<bool> &inliers)
         \brief Object constructor (with paramaters). This constructor is the most general constructor since it will define the circle parameters from a set of 3 or more point's coordinates that lie on the circles loci. If the points are colinear or there are less than 3 points, the circle is not defined; if there are exactly 3 non-colinear points, the circle gets defines uniquely, and if there are more than three points, the circle is fitted to the data using the RANSAC algoritm. 
-        \param vector <Point3s> &p A vector of coordinates that lie on the circles locus.
+        \param vector <cv::Point> &p A vector of coordinates that lie on the circles locus.
+        \param vector <bool> &inliers A vector of boolean values that indicate of the corresponding cv::Point element in vector p is an inlier or not.
     */
-    Circle(std::vector <Point3s> &p);
+    Circle(std::vector <cv::Point> &p, std::vector<bool> &inliers);
     
    /*!
-        \func float fitCircle(std::vector<Point3s> &pts, float w=0.6, float sigma = 1, float p=0.99)
+        \func float fitCircle(std::vector<cv::Point> &pts, std::vector<bool> &inliers, float w=0.6, float sigma = 1, float p=0.99)
         \brief This function find the circle parameters from a set of point coordinates. If there are less than three points in the set or there are exactly three and they are colinear, the circle is not defined, and the function returns -1. if there are more than three points, the circle is fitted to the data using the RANSAC algoritm; in this case the function returns the fit error, defined as the the average of the minimum distance between the points use to define the circle, and the circle found. The parameters w, sigma and p are only needed in case there are more than 3 points in the set.
-        \param vector <Point3s> &p A vector of coordinates used to define a circle. 
+        \param vector <cv::Point> &p A vector of coordinates used to define a circle. 
         \param float w Is the proportion of inliers vs outliers.
         \param float sigma Is the measurement noise.
         \param float p The probability that the points used to define the circle is outlier-free.
         \return This function returns the fit error, 0 is there is a unique fit, and -1 if the circle is not defined.
     */
-    float fitCircle(std::vector<Point3s> &pts, float w=0.6, float sigma = 1, float p=0.99);
+    float fitCircle(std::vector<cv::Point> &pts, std::vector<bool> &inliers, float w=0.6, float sigma = 1, float p=0.99);
 
     /*!
     \func void fitCircle( float x1, float y1, float x2, float y2, float x3, float y3)
@@ -83,68 +81,49 @@ struct Circle
 
 
     /*!
-        \func float fitBestCircle(vector<Point3s> &pts, unsigned int nInliers, unsigned int *idx)
+        \func float fitBestCircle(vector<cv::Point> &pts, unsigned int nInliers, unsigned int *idx)
         \brief Find the circle parameters that best fit the point coordinates stored in pts. The function receives an array with a list of those coordinates in pts that are classified as inliners. This method is usually the last step in the RANSAC method. 
-        \param vector <Point3s> &pts A vector of coordinates; some of them define a circle.
+        \param vector <cv::Point> &pts A vector of coordinates; some of them define a circle.
         \param int nInliers the number of coordinate that are classified as inliers in vector pts
         \param int *idx An array that contains the indexes of those elements of pts that are inliers; the length of the array pointed by idx is nInliers.
         \return The error, defined as the average of the minimum distance between the points use to define the circle, and the circle found. 
     */
-    float fitBestCircle(std::vector<Point3s> &pts, unsigned int nInliers, unsigned int *idx);
+    float fitBestCircle(std::vector<cv::Point> &pts, unsigned int nInliers, unsigned int *idx);
 
 
     /*!
-        \func void selectAndTestSample(vector <Point3s> &pts, float thr, unsigned int &inliers, unsigned int &outliers)
-        \brief This function randomly select a sample of three points from the pts vector, find the circle that fits those the points, and count how many of them are inliers and how many are outliers; A point is an inlier if its distance to the circle is smaller or equal that a threshold (parameter thr), otherwise is deemed to be an outlier. The third component of each coordinate (Point3s contain three elements), store the status of the coordinate: 1 == inliers, 0 == outlier.
-        \param vector <Point3s> &pts A vector of coordinates that might lie on a circles locus.
+        \func void selectAndTestSample(vector <cv::Point> &pts, vector <bool> &inliers, float thr, unsigned int &nInliers, unsigned int &nOutliers)
+        \brief This function randomly select a sample of three points from the pts vector, find the circle that fits those the points, and count how many of them are inliers and how many are outliers; A point is an inlier if its distance to the circle is smaller or equal that a threshold (parameter thr), otherwise is deemed to be an outlier. The third component of each coordinate (cv::Point contain three elements), store the status of the coordinate: 1 == inliers, 0 == outlier.
+        \param vector <cv::Point> &pts A vector of coordinates that might lie on a circles loci.
+        \param vector <bool> &inliers A vector of boolean values. Each value correspons to a coordinate in vector pts, and indicate whether a coordinate is an inlier or not. 
         \param float thr The threshold used to determine if a point is an inlier or an outlier.
-        \param unsigned int &inliers used to  returns the number of inliers found.
-        \param unsigned int &outliers used to return the number of outliers found.
-        \param Kthr Curvature threshold, use to discriminate contour coordinates
-        that have curvature that is too different to the one that is expected
-        (1/r). 
+        \param unsigned int &nInliers used to  returns the number of inliers found.
+        \param unsigned int &nOutliers used to return the number of outliers found.
     */
-    void selectAndTestSample(std::vector <Point3s> &pts, float thr, unsigned int &inliers, unsigned int &outliers, float kThr);
+    void selectAndTestSample(std::vector <cv::Point> &pts, std::vector<bool> &inliers, float thr, unsigned int &nInliers, unsigned int &nOutliers);
     
     /*!
-        \func float ransacFit(vector <Point3s> &pts, unsigned int &nInl, float w, float sigma = 1, float p=0.99) 
+        \func float ransacFit(vector <cv::Point> &pts, std::vector<bool> &inliers, unsigned int &nInl, float w, float sigma = 1, float p=0.99) 
         \brief This function implements the RANSAC algorithm to fit a circle to a set of points.
-        \param vector <Point3s> &pts A vector of coordinates used to define a circle. After the function eecution the third component of each element of pts is equal to 0 if that coordinate is an outlier, and 1 otherwise. 
+        \param vector <cv::Point> &pts A vector of 2D coordinates used to define a circle; i.e. the coordinate of the circle loci.
+        \param vector <bool> &inliers A vector of boolean values. Each value correspons to a coordinate in vector pts, and indicate whether a coordinate is an inlier on not. 
         \param unsigned int &nInl Return the number of inliers found.
         \param float w Is the proportion of inliers vs outliers.
         \param float sigma Is the measurement noise.
         \param float p The probability that the points used to define the circle is outlier-free.
-        \param Kthr Curvature threshold, use to discriminate contour coordinates
-        that have curvature that is too different to the one that is expected
-        (1/r). 
         \return The error, defined as the average of the minimum distance between the points use to define the circle, and the circle found. 
     */
-    float ransacFit(std::vector <Point3s> &pts, unsigned int &nInl, float w, float sigma = 1, float p=0.99, float kThr = 0.);
+    float ransacFit(std::vector <cv::Point> &pts, std::vector<bool> &inliers, unsigned int &nInl, float w, float sigma = 1, float p=0.99);
     
     /*!
-        \func float distMin(Point3s &p)
+        \func float distMin(cv::Point &p)
         \brief  Computes and return the minimum distance between the point p and the circle.
-        \param Point3s &p The point for which the distance will be computed.
+        \param cv::Point &p The point for which the distance will be computed.
         \return the minimum distance between point p and the circle.
     */
-    float distMin(Point3s &p);
-
-
-   /*
-      \func float computeCurvature(Point3s &p0, Point3s &p1, Point3s &p2);
-      \brief Compute the curvature of a curve from three adyacent points
-             in a contour. The curvature is computes as 
-             \f$k = \frac{\dot(x)\ddot{y}-\ddot{x}\dot{y}}{(\dot{x}^2)+\dot{y}^2)^\frac{3}{2}}\f$
-             where (\f$\dot{x}\f$,\f$\dot{y}\f$) and
-             (\f$\ddot{x}\f$,\f$\ddot{y}\f$) are respectively the first and
-             second derivatives with respect to arc length s.
-      \param Point3s &p0, &p1, &p2. The plane coordinates of three adyacent
-             contour points.
-      \return The curvature measurement. It should be equal to the reciprocal
-              radius of the circle tangent to the contour at point p.
-   */
-    float computeCurvature(Point3s &p0, Point3s &p1, Point3s &p2);
+    float distMin(cv::Point &p);
 
 };
+}
 
 #endif

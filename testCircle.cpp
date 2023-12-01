@@ -26,8 +26,9 @@ int data[70][3] = {{71, 87, 0}, {124, 152, 0}, {119, 148, 0}, {63, 78, 0}, {30, 
 int main()
 {
     short x[4], y[4];
-    vector <Point3s> p;
-    Point3s ext;
+    vector <Point> p;
+    vector <bool> inliers;
+    Point ext;
     unsigned int i, nInliers = 0;
     float error;
 
@@ -35,41 +36,42 @@ int main()
     srand48(time(0));
     for (i=0;i<4;++i)
     {
-        x[i] = (short)(100*drand48()-50);
-        y[i] = (short)(100*drand48()-50);
+        x[i] = (int)(100*drand48()-50);
+        y[i] = (int)(100*drand48()-50);
         if (i < 3)
         {
-            p.push_back(Point3s(x[i],y[i], 1));
+            p.push_back(Point(x[i],y[i]));
             cout << "p" << i+1 << " = [" << x[i] << ", " << y[i] << "]" << endl;
         }
     }
 
-    Circle C0(p);
+    CircFit::Circle C0(p, inliers);
     if (!C0.undefined)
         cout << endl << "C0= [" << C0.h << ", " << C0.k
             << ", " << C0.r << "]" << endl;
     else
         cout <<"Undefined circle: colineal points." << endl;
 
-    ext = Point3s(x[3], y[3], 1);
+    ext = Point(x[3], y[3]);
     cout << "La distancia mínima entre el circulo y el punto (" << x[3] << ", " << y[3] << ") = " << C0.distMin(ext) << endl << endl;
 
 
     {
-        vector<Point3s> pts(70, Point3s(0,0, 0));
-        Circle C1;
+        vector<Point> pts(70, Point(0,0));
+        vector<bool> inliers(70, false);
+        CircFit::Circle C1;
 
         for (i=0;i<70;++i)
         {
             pts[i].x = data[i][0];
             pts[i].y = data[i][1];
-            pts[i].z = data[i][2];
+            inliers[i] = (bool)data[i][2];
         }
     
         nInliers = 0;
         // Aquí definimos el umbral de curvatura como 0. porque los puntos del
         // círculo no están organizados como un contorno.
-        error = C1.ransacFit(pts,  nInliers, 0.42857, 0.1, 0.99);
+        error = C1.ransacFit(pts, inliers, nInliers, 0.42857, 0.1, 0.99);
         cout << endl << "C1= [" << C1.h << ", " << C1.k
          << ", " << C1.r << "]" << endl << endl;
          cout << "Numero de inliers: " << nInliers << endl;
